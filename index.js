@@ -1,6 +1,10 @@
 const server = require('nukkitx-server');
 const EventPriority = Java.type('cn.nukkit.event.EventPriority');
 
+server.on('startup', () => {
+  console.log('TeamP已启动');
+});
+
 server.on('player.PlayerJoinEvent', (event) => {
   const player = event.getPlayer();
   showTeamSelectionGUI(player);
