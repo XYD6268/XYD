@@ -1,35 +1,42 @@
-const server = require('nukkit').server;
+const server = require('nukkitx-server');
+const EventPriority = Java.type('cn.nukkit.event.EventPriority');
 
-function joinTeam(player, teamColor) {
-  const command = 'team join ' + teamColor;
-  server.dispatchCommand(server.getConsoleSender(), command);
-  player.sendMessage('你加入了' + teamColor + '队！');
-}
+server.on('player.PlayerJoinEvent', (event) => {
+  const player = event.getPlayer();
+  showTeamSelectionGUI(player);
+  updatePlayerLabels(player);
+}).priority(EventPriority.HIGH);
+
+server.on('player.PlayerRespawnEvent', (event) => {
+  const player = event.getPlayer();
+  handlePlayerRespawn(player);
+});
 
 function showTeamSelectionGUI(player) {
-  const form = new FormWindowSimple('团队选择', '请选择一个队伍：');
-  form.addButton(new ElementButton('红队'));
-  form.addButton(new ElementButton('蓝队'));
+  const form = server.createCustomFormBuilder('团队选择')
+    .addDropdown('team', ['红队', '蓝队'])
+    .onSubmit((data) => {
+      if (data === null) return;
+      const teamColor = data.team === '红队' ? 'red' : 'blue';
+      joinTeam(player, teamColor);
+    })
+    .build();
 
-  player.showFormWindow(form);
+  form.send(player);
 }
 
-server.on('player.join', (event) => {
-  const player = event.player;
-  showTeamSelectionGUI(player);
-});
+function joinTeam(player, teamColor) {
+  const command = `/team join ${teamColor}`;
+  server.dispatchCommand(server.getConsoleSender(), command);
+  player.sendMessage(`§a你加入了${teamColor.toUpperCase()}队！`);
+}
 
-server.on('form.responded', (event) => {
-  const player = event.player;
-  const response = event.response;
+function updatePlayerLabels(player) {
+  player.setNameTag(`§l${player.getName()}`);
+  player.setNameTagVisible(true);
+  player.setNameTagAlwaysVisible(true);
+}
 
-  if (response instanceof FormWindowSimple.Response) {
-    const clickedButtonIndex = response.getClickedButtonId();
-
-    if (clickedButtonIndex === 0) {
-      joinTeam(player, 'Red');
-    } else if (clickedButtonIndex === 1) {
-      joinTeam(player, 'Blue');
-    }
-  }
-});
+function handlePlayerRespawn(player) {
+  player.setGamemode(3); // 将玩家切换到旁观模式（游戏模式3）
+}
